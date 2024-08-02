@@ -1,35 +1,39 @@
 import os
-from dotenv import load_dotenv
-from llama_parse import LlamaParse
-from llama_index.core import SimpleDirectoryReader
+from llamaparse_loader import llamaparser
+from pdf_loader import pdfLoader
 
-# Load environment variables
-load_dotenv()
+def process_files(input_dir: str, output_dir: str):
+    """
+    Process files in the input directory based on their extensions and
+    save the output to the specified directory.
 
-# Set up parser
-parser = LlamaParse(
-    api_key=os.environ.get("LLAMAPARSE_API_KEY"),
-    result_type="markdown"  # "markdown" and "text" are available
-)
+    Args:
+        input_dir (str): The directory containing files to process.
+        output_dir (str): The directory to save the output files.
+    """
+    # Ensure the output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-# Use SimpleDirectoryReader to parse our file
-file_extractor = {".pdf": parser, ".txt": parser}
-input_dir = '../documents'
-documents = SimpleDirectoryReader(input_dir=input_dir, file_extractor=file_extractor).load_data()
+    # List all files in the input directory
+    files = os.listdir(input_dir)
+    pdf_files = [f for f in files if f.lower().endswith('.pdf')]
+    text_files = [f for f in files if f.lower().endswith('.txt') or f.lower().endswith('.doc')]
 
-# Ensure the output directory exists
-output_dir = '../extracted_output'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+    # Process PDF files
+    if pdf_files:
+        print("Processing PDF files...")
+        pdfLoader(input_dir=input_dir, output_dir=output_dir)
 
-# Save each document's content to a separate .txt file
-for doc in documents:
-    file_name = doc.metadata.get('file_name')  # Get the file name from metadata
-    file_name_without_ext = os.path.splitext(file_name)[0]  # Remove the extension
-    output_file_path = os.path.join(output_dir, f"{file_name_without_ext}.txt")
-    
-    # Write the content to the file
-    with open(output_file_path, 'w', encoding='utf-8') as file:
-        file.write(doc.text)  # Assuming 'text' contains the document content
+    # Process .txt and .doc files
+    if text_files:
+        print("Processing text and doc files...")
+        llamaparser(input_dir=input_dir, output_dir=output_dir)
 
-print("Documents have been processed and saved in the extracted_output folder.")
+    print("Processing complete. Output files are located in '{}'.".format(output_dir))
+
+if __name__ == "__main__":
+    # Replace with the path to your directories
+    input_dir = '../documents'
+    output_dir = '../extracted_output'
+    process_files(input_dir, output_dir)
